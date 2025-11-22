@@ -30,6 +30,7 @@ export enum MAIL_CONTENT_PURPOSE {
   EMAIL_CHANGE = "email change",
   REQUEST_REJECTED = "request rejected",
   RESET_PASSWORD = "reset password",
+  RESEND_OTP ="resend otp"
 }
 export type EmailOtpPurpose = "signup" | "forgot-password" | "resend";
 
@@ -47,9 +48,18 @@ export const ERROR_MESSAGE = {
   USER_ALREADY_EXISTS :"User already registered.",
   VALIDATION:"Validation Error",
     INVALID_OTP: "invalid otp",
-    RESTART_SIGNUP:"Form data expired or not found. Please restart signup"
+    RESTART_SIGNUP:"Form data expired or not found. Please restart signup",
+      EMAIL_REQUIRED: "Email is required",
+        TOKEN_MISSING: "Authorization token is required",
+
+
 
 };
+export const COOKIES_NAMES = {
+  REFRESH_TOKEN: "refresh_token",
+  ACCESS_TOKEN: "access_token",
+};
+
 export const SUCESS_MESSAGE={
   ACCOUNT_CREATED:"Account created successfully",
   LOGIN_SUCESS : "Logged in successfully",

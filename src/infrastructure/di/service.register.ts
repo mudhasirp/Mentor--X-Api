@@ -3,6 +3,8 @@ import { IOtpService } from "../../application/services/interfaces/otp.service.i
 import { OtpService } from "../../application/services/implementations/otp.service";
 import { IEmailService } from "../../domain/service-interfaces/email-service.interface";
 import { EmailService } from "../service/email.service";
+import { ITokenService } from "../../domain/service-interfaces/token-service.interface";
+import { TokenService } from "../service/token.service";
 
 export class ServiceRegistry{
     static registerService():void{
@@ -11,6 +13,9 @@ export class ServiceRegistry{
         });
         container.register<IEmailService>("IEmailService",{
             useClass:EmailService
+        })
+        container.register<ITokenService>("ITokenService",{
+            useClass:TokenService
         })
     }
 }

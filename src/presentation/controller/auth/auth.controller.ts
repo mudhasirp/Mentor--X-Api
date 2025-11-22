@@ -11,6 +11,11 @@ import { ResponseHelper } from "../../../infrastructure/config/server/helpers/re
 import { ERROR_MESSAGE, HTTP_STATUS, SUCESS_MESSAGE } from "../../../shared/constants";
 import { UserRegisterDTO } from "../../../application/dto/request/auth.dto";
 import { validate } from "class-validator";
+import { IResendOtpUsecase } from "../../../application/usecase/interface/auth/resendOtp.interface";
+import { LoginDTO } from "../../../application/dto/request/login.dto";
+import { ILoginUsecase } from "../../../application/usecase/interface/auth/loginUsecase";
+import { IGenerateTokenUseCase } from "../../../application/usecase/interface/auth/generateToken.usecase";
+import { setAuthCookies } from "../../../shared/utils/cookieHelper";
 @injectable()
 export class AuthController implements IAuthController {
   constructor(
@@ -24,7 +29,16 @@ export class AuthController implements IAuthController {
     private verifyOtpUsecase: IVerifyOtpUsecase,
 
     @inject("IOtpService")
-    private otpService: IOtpService
+    private otpService: IOtpService,
+
+    @inject("IResendOtpUsecase")
+    private resendOtpUsecase:IResendOtpUsecase,
+
+    @inject("ILoginUsecase")
+    private _loginUsecase:ILoginUsecase,
+
+    @inject("IGenerateTokenUseCase")
+    private _generateUseCase :IGenerateTokenUseCase
   ) {}
 
   // --------------------------------------------------
@@ -116,7 +130,6 @@ async sendOtp(req: Request, res: Response): Promise<void> {
     } catch (error: any) {
        console.error("Signup Error:", error);
 
-    // 🔥 HANDLE DUPLICATE KEY ERRORS SAFELY
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       ResponseHelper.error(
@@ -126,7 +139,6 @@ async sendOtp(req: Request, res: Response): Promise<void> {
       );
     }
 
-    // Generic fallback
     ResponseHelper.error(
       res,
       "Signup failed. Please try again later.",
@@ -134,4 +146,95 @@ async sendOtp(req: Request, res: Response): Promise<void> {
     );
     }
   }
+  async resendOtp(req: Request, res: Response): Promise<void> {
+    try{
+      const {email}=req.body;
+       await this.resendOtpUsecase.execute(email)
+      ResponseHelper.success(
+        res,
+        HTTP_STATUS.OK,
+        "Otp resent successfully"
+        
+      )
+    }catch(error:any){
+   console.error("Resend OTp Error",error),
+   ResponseHelper.error(
+    res,
+    error.message || "failed to resend Otp",
+   400 
+   )
+  }
+  }
+  async login(req: Request, res: Response): Promise<void> {
+  try {
+    console.log("📥 LOGIN REQUEST BODY:", req.body);
+
+    // 1. Validate DTO
+    const dto = Object.assign(new LoginDTO(), req.body);
+    const errors = await validate(dto);
+
+    if (errors.length > 0) {
+      const msg = Object.values(errors[0].constraints!)[0];
+      console.log("❌ DTO VALIDATION FAILED:", msg);
+       ResponseHelper.error(res, msg, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    console.log("✅ DTO VALIDATION PASSED");
+
+    // 2. Execute login usecase
+    console.log("🔍 Checking user in DB for email:", dto.email);
+    const user = await this._loginUsecase.execute(dto);
+
+    console.log("✅ USER FOUND:", {
+      id: user?._id,
+      email: user?.email,
+      role: user?.role,
+      username: user?.username,
+    });
+
+    // 3. Generate tokens
+    console.log("🔐 Generating tokens...");
+    const tokens = await this._generateUseCase.execute(
+      user._id.toString(),
+      user.email,
+      user.role
+    );
+
+    console.log("✅ TOKENS GENERATED:", {
+      accessToken: tokens.accessToken.slice(0, 15) + "...",
+      refreshToken: tokens.refreshToken.slice(0, 15) + "...",
+    });
+
+    // 4. Set cookies
+    console.log("🍪 Setting Auth Cookies...");
+    setAuthCookies(
+      res,
+      tokens.accessToken,
+      tokens.refreshToken,
+      "access_token",
+      "refresh_token"
+    );
+
+    // 5. Final response
+    console.log("🎉 LOGIN SUCCESS");
+
+    ResponseHelper.success(res, HTTP_STATUS.OK, "Login successful", {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      username: user.username,
+    });
+
+  } catch (err: any) {
+    console.log("🔥 LOGIN ERROR OCCURRED");
+    console.error("🔥 ERROR:", err);
+
+    ResponseHelper.error(
+      res,
+      err.message || "Login failed",
+      HTTP_STATUS.BAD_REQUEST
+    );
+  }
+}
+
 }

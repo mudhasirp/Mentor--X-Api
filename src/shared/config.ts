@@ -19,6 +19,13 @@ export const config={
         port:Number(process.env.EMAIL_PORT),
         user:process.env.EMAIL_USER,
         pass:process.env.EMAIL_PASS
-    }
+    },
+   jwt: {
+    ACCESS_SECRET_KEY: process.env.ACCESS_SECRET_KEY || "",
+    ACCESS_EXPIRES_IN: process.env.ACCESS_EXPIRES_IN || "15m",
+
+    REFRESH_SECRET: process.env.REFRESH_SECRET_KEY || "",
+    REFRESH_EXPIRES_IN: process.env.REFRESH_EXPIRES_IN || "7d"
+}
 
 }

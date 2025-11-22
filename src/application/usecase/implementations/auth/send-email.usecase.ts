@@ -26,23 +26,27 @@ export class SendEmailUsecase implements ISendEmailUsecase {
 
   async execute(formDto: UserRegisterDTO, purpose: EmailOtpPurpose): Promise<void> {
     const email = formDto.email;
+    const username=formDto.username
     console.log("sending gmail")
 
-    // Already registered user?
     const existingUser = await this.authRepository.findByEmail(email);
     if (existingUser) {
       throw new CustomError(HTTP_STATUS.CONFLICT, ERROR_MESSAGE.USER_ALREADY_EXISTS);
     }
+     const existingUsername = await this.authRepository.findByUsername(username);
+     
+  if (existingUsername) {
+    console.log("existing user")
+    throw new CustomError(HTTP_STATUS.CONFLICT, ERROR_MESSAGE.USER_ALREADY_EXISTS);
+  }
 
-    // Remove old otp + old data
+
     await this.otpService.deleteOtp(email);
     await this.otpService.deleteFormData(email);
 
-    // Generate OTP
     const otp = this.otpService.generateOtp();
     await this.otpService.storeOtp(email, otp);
 
-    // Store complete signup form
     if (purpose === "signup") {
       await this.otpService.storeFormData(email, {
         username: formDto.username,
@@ -53,10 +57,8 @@ export class SendEmailUsecase implements ISendEmailUsecase {
       });
     }
 
-    // Create HTML email
     const html = mailContentProvider(MAIL_CONTENT_PURPOSE.OTP, otp);
 
-    // Fire email event
     eventBus.emit(
       EVENT_EMMITER_TYPE.SENDMAIL,
       email,

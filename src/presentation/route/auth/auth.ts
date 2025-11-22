@@ -24,6 +24,14 @@ export class AuthRoutes extends BaseRoute {
       "/signup",
       asyncHandler(authController.signup.bind(authController))
     )
+    this.router.post(
+      "/resend-otp",
+      asyncHandler(authController.resendOtp.bind(authController))
+    )
+    this.router.post(
+      "/login",
+      asyncHandler(authController.login.bind(authController))
+    )
   }
 }
 

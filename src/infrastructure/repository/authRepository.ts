@@ -18,4 +18,8 @@ export class AuthRepository
 
         return user ? UserMapper.toEntity(user) : null
     }
+    async findByUsername(username: string): Promise<IUserEntity | null> {
+      const user=await UserModel.findOne({username}).exec()
+      return user ? UserMapper.toEntity(user):null
+    }
   }
